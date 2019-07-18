@@ -28,10 +28,10 @@ func TestPointer(t *testing.T) {
 	err := json.Unmarshal([]byte(js), &x)
 	r.Nil(err)
 
-	jsonp.Walk(x, func(path string, c jsonp.Any) {
-		c2, err := jsonp.Get(x, path)
-		r.Nil(err, "PATH:%v", path)
-		r.Equal(c2, c, "PATH:%v", path)
+	jsonp.WalkByPointer(x, func(pointer string, c jsonp.Any) {
+		c2, err := jsonp.GetByPointer(x, pointer)
+		r.Nil(err, "pointer:%v", pointer)
+		r.Equal(c2, c, "pointer:%v", pointer)
 	})
 }
 
