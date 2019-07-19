@@ -2,6 +2,7 @@ package jsonp
 
 import (
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -114,6 +115,16 @@ func walkRecr(x Any, path []string, f func(path []string, x Any) bool) {
 func WalkByPointer(x Any, f func(pointer string, x Any) bool) {
 	Walk(x, func(path []string, x Any) bool {
 		return f(ToPointer(path), x)
+	})
+}
+
+// WalkMatch applies f to all nodes with JSON pointer matches given pattern.
+func WalkMatch(x Any, re *regexp.Regexp, f func(string, Any) bool) {
+	WalkByPointer(x, func(pointer string, v Any) bool {
+		if re.MatchString(pointer) {
+			return f(pointer, v)
+		}
+		return true
 	})
 }
 
