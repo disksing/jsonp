@@ -90,12 +90,14 @@ func getRecr(x Any, path []string, depth int) (Any, error) {
 }
 
 // Walk applies f to all sub nodes of x.
-func Walk(x Any, f func(path []string, x Any)) {
+func Walk(x Any, f func(path []string, x Any) bool) {
 	walkRecr(x, nil, f)
 }
 
-func walkRecr(x Any, path []string, f func(path []string, x Any)) {
-	f(path, x)
+func walkRecr(x Any, path []string, f func(path []string, x Any) bool) {
+	if !f(path, x) {
+		return
+	}
 	if obj, ok := x.(Object); ok {
 		for k, v := range obj {
 			walkRecr(v, append(path, k), f)
@@ -109,9 +111,9 @@ func walkRecr(x Any, path []string, f func(path []string, x Any)) {
 }
 
 // WalkByPointer applies f to all sub nodes of x.
-func WalkByPointer(x Any, f func(pointer string, x Any)) {
-	Walk(x, func(path []string, x Any) {
-		f(ToPointer(path), x)
+func WalkByPointer(x Any, f func(pointer string, x Any) bool) {
+	Walk(x, func(path []string, x Any) bool {
+		return f(ToPointer(path), x)
 	})
 }
 
@@ -206,7 +208,7 @@ func applyRemoveRecr(x Any, path []string, depth int) (Any, Any, error) {
 		}
 		left, removed, err := applyRemoveRecr(arr[idx], path, depth+1)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, errors.Wrap(err, "path:"+ToPointer(path[:depth]))
 		}
 		if left == nil {
 			arr = append(arr[:idx], arr[idx+1:]...)
@@ -220,11 +222,34 @@ func applyRemoveRecr(x Any, path []string, depth int) (Any, Any, error) {
 
 // Replace replaces node by new value at given position.
 func Replace(x Any, path []string, value Any) (Any, error) {
-	x2, err := Remove(x, path)
-	if err != nil {
-		return nil, err
+	return replaceRecr(x, path, 0, value)
+}
+
+func replaceRecr(x Any, path []string, depth int, value Any) (Any, error) {
+	if depth >= len(path) {
+		return value, nil
 	}
-	return Add(x2, path, value)
+	if obj, ok := x.(Object); ok {
+		newObj, err := replaceRecr(obj[path[depth]], path, depth+1, value)
+		if err != nil {
+			return nil, err
+		}
+		obj[path[depth]] = newObj
+		return x, nil
+	}
+	if arr, ok := x.(Array); ok {
+		idx, err := parseIndex(arr, path[depth], false)
+		if err != nil {
+			return nil, errors.Wrap(err, "path:"+ToPointer(path[:depth]))
+		}
+		newObj, err := replaceRecr(x, path, depth+1, value)
+		if err != nil {
+			return nil, errors.Wrap(err, "path:"+ToPointer(path[:depth]))
+		}
+		arr[idx] = newObj
+		return x, nil
+	}
+	return nil, notArrayOrObjectErr(path[:depth])
 }
 
 // ReplaceByPointer replaces node by new value at given position.
@@ -266,7 +291,7 @@ func Copy(x Any, from, to []string) (Any, error) {
 	if err != nil {
 		return nil, err
 	}
-	return Add(x, to, v)
+	return Add(x, to, Clone(v))
 }
 
 // CopyByPointer copies a node to another position.
