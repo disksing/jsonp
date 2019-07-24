@@ -58,6 +58,7 @@ func TestPatch(t *testing.T) {
 
 		{`{"foo": ["bar", "baz"]}`, `[{"op":"remove", "path": "/foo/0"}]`, `{"foo": ["baz"]}`},
 		{`{"foo": ["bar", "baz"]}`, `[{"op":"remove", "path": "/foo/1"}]`, `{"foo": ["bar"]}`},
+		{`{"foo": [{"key": "v1"}]}`, `[{"op":"replace", "path": "/foo/0/key", "value": "v2"}]`, `{"foo": [{"key": "v2"}]}`},
 	}
 	for _, c := range cases {
 		origin := mustUnmarshal(r, c[0])

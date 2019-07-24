@@ -253,7 +253,7 @@ func replaceRecr(x Any, path []string, depth int, value Any) (Any, error) {
 		if err != nil {
 			return nil, errors.Wrap(err, "path:"+ToPointer(path[:depth]))
 		}
-		newObj, err := replaceRecr(x, path, depth+1, value)
+		newObj, err := replaceRecr(arr[idx], path, depth+1, value)
 		if err != nil {
 			return nil, errors.Wrap(err, "path:"+ToPointer(path[:depth]))
 		}
